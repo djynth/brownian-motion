@@ -1,3 +1,5 @@
+#!/bin/env python2.7
+
 from visual import *
 from visual.graph import *
 from random import uniform
@@ -5,7 +7,7 @@ from random import uniform
 BOX_SIZE = 1e3    # m
 PARTICLES = 100
 time = 0
-dt = 0.01         # s
+dt = 1         # s
 
 scene.visible = True
 
