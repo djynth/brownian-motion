@@ -39,7 +39,7 @@ class Object(sphere):
         for o in objects:
             if self != o:
                 if mag(self.pos - o.pos) <= min(self.radius, o.radius):
-                    # print "collision!"
+                    print "collision!"
 
 class Particle(Object):
     def __init__(self):
