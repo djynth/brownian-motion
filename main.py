@@ -5,11 +5,17 @@ from visual.graph import *
 from random import uniform
 
 BOX_SIZE = 1e3    # m
-PARTICLES = 100
+PARTICLES = 30
 time = 0
 dt = 1         # s
 
 scene.visible = True
+
+box_bottom = box(pos=(0,-BOX_SIZE,0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01, color=color.cyan, opacity=0.2)
+box_top = box(pos=(0,BOX_SIZE,0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01, color=color.cyan, opacity=0.2)
+box_left = box(pos=(-BOX_SIZE,0,0), length=0.01, width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
+box_right = box(pos=(BOX_SIZE,0,0), length=0.01, width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
+box_back = box(pos=(0,0,-BOX_SIZE), length=2*BOX_SIZE, width=0.01, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
 
 class Object(sphere):
     def __init__(self, pos=vector(0,0,0), radius=0, velocity=vector(0,0,0), color=color.white):
