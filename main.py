@@ -7,7 +7,7 @@ import time
 
 BOX_SIZE = 1e3      # m
 PARTICLES = 50
-dt = 5             # s
+dt = 5              # s
 
 scene.visible = True
 
@@ -65,7 +65,7 @@ class Object(sphere):
         for o in objects:
             tot_radius = self.radius + o.radius
             intersect_amount = tot_radius - mag(self.pos - o.pos)
-            if self != o and intersect_amount > 1e-2:
+            if self != o and intersect_amount > 1e-3:
                 # move the objects so they are no longer intersecting
                 # each object is adjusted by an amount proportional to its
                 #  radius, a good approximation as the timestep gets small
@@ -82,8 +82,6 @@ class Object(sphere):
                 #  collision should be adequate to consider each collision only
                 #  once
 
-                # TODO: find their new velocities after the collision
-
                 ref_frame = copy(o.velocity)
 
                 self.velocity -= ref_frame
@@ -97,15 +95,16 @@ class Object(sphere):
 
 class Particle(Object):
     RADIUS = 15
+    MAX_SPEED = 5
 
     def __init__(self, objects):
         Object.__init__(self, color=color.yellow, radius=Particle.RADIUS, velocity=Particle.generate_velocity(), pos=Particle.generate_position(objects))
 
     @staticmethod
     def generate_velocity():
-        return vector(uniform(0, 3),
-                      uniform(0, 3),
-                      uniform(0, 3))
+        return uniform(0, Particle.MAX_SPEED) * norm(vector(uniform(0, 1),
+                                                            uniform(0, 1),
+                                                            uniform(0, 1)))
 
     @staticmethod
     def generate_position(objects):
@@ -141,4 +140,4 @@ while True:
         o.tick(objects, dt)
 
     if scene.visible:
-        time.sleep(0.00001)         # sleep time in s
+        time.sleep(0.0001)         # sleep time in s
