@@ -6,8 +6,8 @@ from random import uniform
 import time
 
 BOX_SIZE = 1e3      # m
-PARTICLES = 10
-dt = .1             # s
+PARTICLES = 50
+dt = 5             # s
 
 scene.visible = True
 
@@ -96,19 +96,23 @@ class Object(sphere):
                 o.velocity += ref_frame
 
 class Particle(Object):
-    RADIUS = 10
+    RADIUS = 15
 
     def __init__(self, objects):
         Object.__init__(self, color=color.yellow, radius=Particle.RADIUS, velocity=Particle.generate_velocity(), pos=Particle.generate_position(objects))
 
     @staticmethod
     def generate_velocity():
-        return vector(uniform(0, 3), 0, 0)
+        return vector(uniform(0, 3),
+                      uniform(0, 3),
+                      uniform(0, 3))
 
     @staticmethod
     def generate_position(objects):
         while True:
-            candidate = vector(uniform(-BOX_SIZE, BOX_SIZE), 0, 0)
+            candidate = vector(uniform(-BOX_SIZE, BOX_SIZE),
+                               uniform(-BOX_SIZE, BOX_SIZE),
+                               uniform(-BOX_SIZE, BOX_SIZE))
 
             for o in objects:
                 if mag(candidate - o.pos) <= o.radius + Particle.RADIUS:
@@ -121,6 +125,11 @@ class Mass(Object):
 
     def __init__(self):
         Object.__init__(self, color=color.blue, radius=Mass.RADIUS)
+        self.trace = curve(color=color.blue)
+
+    def tick(self, objects, dt):
+        Object.tick(self, objects, dt)
+        self.trace.append(self.pos)
 
 objects = list()
 objects.append(Mass())
@@ -132,4 +141,4 @@ while True:
         o.tick(objects, dt)
 
     if scene.visible:
-        time.sleep(0.00001)
+        time.sleep(0.00001)         # sleep time in s
