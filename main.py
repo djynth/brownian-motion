@@ -7,7 +7,7 @@ from random import uniform
 BOX_SIZE = 1e3    # m
 PARTICLES = 30
 time = 0
-dt = 1         # s
+dt = 1            # s
 
 scene.visible = True
 
@@ -47,7 +47,9 @@ class Object(sphere):
         for o in objects:
             if self != o:
                 if mag(self.pos - o.pos) <= min(self.radius, o.radius):
-                    print "collision!"
+                    # TODO: move the objects so they are no longer intersecting
+                    # TODO: find their new velocities after the collision
+                    print "collision"
 
 class Particle(Object):
     def __init__(self):
@@ -68,15 +70,14 @@ class Mass(Object):
         super(Object, self).__init__(color=color.blue, radius=1e2)
         self.velocity = vector(0, 0, 0)
 
-mass = Mass()
 objects = list()
+objects.append(Mass())
 i = 0
 while i < PARTICLES:
     objects.append(Particle())
     i += 1
 
 while True:
-    mass.tick(objects, dt)
     for o in objects:
         o.tick(objects, dt)
 
