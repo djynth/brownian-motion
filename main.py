@@ -11,11 +11,11 @@ dt = 1            # s
 
 scene.visible = True
 
-box_bottom = box(pos=(0,-BOX_SIZE,0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01, color=color.cyan, opacity=0.2)
-box_top = box(pos=(0,BOX_SIZE,0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01, color=color.cyan, opacity=0.2)
-box_left = box(pos=(-BOX_SIZE,0,0), length=0.01, width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
-box_right = box(pos=(BOX_SIZE,0,0), length=0.01, width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
-box_back = box(pos=(0,0,-BOX_SIZE), length=2*BOX_SIZE, width=0.01, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
+box_bottom = box(pos=(0, -BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
+box_top    = box(pos=(0,  BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
+box_left   = box(pos=(-BOX_SIZE, 0, 0), length=0.01,       width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
+box_right  = box(pos=( BOX_SIZE, 0, 0), length=0.01,       width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
+box_back   = box(pos=(0, 0, -BOX_SIZE), length=2*BOX_SIZE, width=0.01,       height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
 
 class Object(sphere):
     def __init__(self, pos=vector(0,0,0), radius=0, velocity=vector(0,0,0), color=color.white):
@@ -33,21 +33,23 @@ class Object(sphere):
         return 4/3*pi*radius**3
 
     def get_mass(self):
-        return 1*self.get_volume()
+        return 1*self.get_volume()  # density is 1 kg/m^3
 
     def tick(self, objects, dt):
         self.pos += self.velocity * dt
-        if self.pos.x > BOX_SIZE or self.pos.x < -BOX_SIZE:
-            self.velocity.x = -self.velocity.x
-        if self.pos.y > BOX_SIZE or self.pos.y < -BOX_SIZE:
-            self.velocity.y = -self.velocity.y
-        if self.pos.z > BOX_SIZE or self.pos.z < -BOX_SIZE:
-            self.velocity.z = -self.velocity.z
+        if abs(self.pos.x) > BOX_SIZE:
+            self.pos.x = BOX_SIZE if self.pos.x > 0 else -BOX_SIZE
+            self.velocity.x *= -1
+        if abs(self.pos.y) > BOX_SIZE:
+            self.pos.y = BOX_SIZE if self.pos.y > 0 else -BOX_SIZE
+            self.velocity.y *= -1
+        if abs(self.pos.z) > BOX_SIZE:
+            self.pos.z = BOX_SIZE if self.pos.z > 0 else -BOX_SIZE
+            self.velocity.z *= -1
 
         for o in objects:
-            if self != o and mag(self.pos - o.pos) <= self.radius + o.radius:
-                tot_radius = self.radius + o.radius
-
+            tot_radius = self.radius + o.radius
+            if self != o and tot_radius - mag(self.pos - o.pos) > 1e-5:
                 # move the objects so they are no longer intersecting
                 # each object is adjusted by an amount proportional to its
                 #  radius, a good approximation as the timestep gets small
@@ -60,6 +62,11 @@ class Object(sphere):
                 self.pos -= norm(o.pos - self.pos) * (self.radius/tot_radius)*interesct_amount
                 o.pos -= norm(self.pos - o.pos) * (o.radius/tot_radius)*interesct_amount
 
+                # from testing, the value (tot_radius - mag(self.pos - o.pos))
+                #  is on the order of 1e-14, and so the bounds required for a
+                #  collision should be adequate to consider each collision only
+                #  once
+
                 # TODO: find their new velocities after the collision
 
                 print "collision (amount: ", interesct_amount, ")"
@@ -71,7 +78,9 @@ class Particle(Object):
         self.pos = self.generate_position()
 
     def generate_velocity(self):
-        return vector(uniform(0, 10), uniform(0, 10), uniform(0, 10))
+        return vector(uniform(0, 1),
+                      uniform(0, 1),
+                      uniform(0, 1))
 
     def generate_position(self):
         return vector(uniform(-BOX_SIZE, BOX_SIZE),
