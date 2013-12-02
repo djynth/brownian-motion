@@ -45,11 +45,24 @@ class Object(sphere):
             self.velocity.z = -self.velocity.z
 
         for o in objects:
-            if self != o:
-                if mag(self.pos - o.pos) <= min(self.radius, o.radius):
-                    # TODO: move the objects so they are no longer intersecting
-                    # TODO: find their new velocities after the collision
-                    print "collision"
+            if self != o and mag(self.pos - o.pos) <= self.radius + o.radius:
+                tot_radius = self.radius + o.radius
+
+                # move the objects so they are no longer intersecting
+                # each object is adjusted by an amount proportional to its
+                #  radius, a good approximation as the timestep gets small
+                # note: the intersted_amount is a way to judge the accuracy of
+                #  the simulation, if it is small, the simulation will be
+                #  accurate, if it is large, the simulation could become
+                #  inaccurate and the timestep should be decreased
+
+                interesct_amount = tot_radius - mag(self.pos - o.pos)
+                self.pos -= norm(o.pos - self.pos) * (self.radius/tot_radius)*interesct_amount
+                o.pos -= norm(self.pos - o.pos) * (o.radius/tot_radius)*interesct_amount
+
+                # TODO: find their new velocities after the collision
+
+                print "collision (amount: ", interesct_amount, ")"
 
 class Particle(Object):
     def __init__(self):
