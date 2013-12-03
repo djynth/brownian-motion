@@ -11,13 +11,14 @@ dt = .25            # s
 SLEEP = 1           # amount of time to sleep each loop (if the scene is visible) in ms
 NUM_SIMS = 1        # the number of times to run the simulation (starting over each time)
 SIM_TIME = 100      # how long each simulation should run, in seconds of simulation-time
+demo = True         # toggle running the demo (show the window, run only one simulation)
 
 d2 = False          # set to true to simulate in 2 dimensions (all z-fields are 0)
 d1 = False          # set to true to simulate in 1 dimension (all y- and z-fields are 0)
 
 scene.visible = False
 scene.fullscreen = True
-scene.visible = False        # set to toggle the display
+scene.visible = demo
 
 box_bottom = box(pos=(0, -BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
 box_top    = box(pos=(0,  BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
@@ -191,38 +192,41 @@ def run_sim(total_time=-1):
 
     return mag(mass.pos)
 
-distances = list()
-for i in range(NUM_SIMS):
-    print i
-    distances.append(run_sim(SIM_TIME))
+if demo:
+    run_sim(-1)
+else:
+    distances = list()
+    for i in range(NUM_SIMS):
+        print i
+        distances.append(run_sim(SIM_TIME))
 
-print distances
-avg = 0
+    print distances
+    avg = 0
 
-for d in distances:
-    avg += d
-avg /= len(distances)
+    for d in distances:
+        avg += d
+    avg /= len(distances)
 
-sd = 0
-for d in distances:
-    sd += (d-avg)**2
-sd /= len(distances)
-sd = sqrt(sd)
+    sd = 0
+    for d in distances:
+        sd += (d-avg)**2
+    sd /= len(distances)
+    sd = sqrt(sd)
 
-print avg
-print sd
+    print avg
+    print sd
 
-datetime = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
-filename = "data/data-" + datetime + ".txt"
-f = open(filename, 'w')
-f.write("Brownian Motion Simulation\n")
-f.write(datetime + "\n")
-f.write("Ran " + `NUM_SIMS` + " times, for " + `SIM_TIME` + " seconds of simulation-time\n")
-f.write("Average displacement: " + `avg` + "\n")
-f.write("Standard deviation: " + `sd` + "\n\n")
-f.write("Displacement data:\n")
+    datetime = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
+    filename = "data/data-" + datetime + ".txt"
+    f = open(filename, 'w')
+    f.write("Brownian Motion Simulation\n")
+    f.write(datetime + "\n")
+    f.write("Ran " + `NUM_SIMS` + " times, for " + `SIM_TIME` + " seconds of simulation-time\n")
+    f.write("Average displacement: " + `avg` + "\n")
+    f.write("Standard deviation: " + `sd` + "\n\n")
+    f.write("Displacement data:\n")
 
-for d in distances:
-    f.write(`d` + "\n")
+    for d in distances:
+        f.write(`d` + "\n")
 
-print "Output written to " + filename
+    print "Output written to " + filename
