@@ -6,9 +6,16 @@ from random import uniform
 import time
 
 BOX_SIZE = 1e3      # m
-PARTICLES = 50
+PARTICLES = 100
 dt = 5              # s
+t = 0
+MAX_TIME = 1e5
 
+d2 = True
+d1 = False
+
+scene.visible = False
+scene.fullscreen = True
 scene.visible = True
 
 box_bottom = box(pos=(0, -BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
@@ -50,8 +57,9 @@ class Object(sphere):
     def intersects(self, other):
         return mag(self.pos - other.pos) <= self.radius + other.radius
 
-    def tick(self, objects, dt):
+    def tick(self, objects, start, dt):
         self.pos += self.velocity * dt
+
         if abs(self.pos.x) > BOX_SIZE:
             self.pos.x = BOX_SIZE if self.pos.x > 0 else -BOX_SIZE
             self.velocity.x *= -1
@@ -62,10 +70,15 @@ class Object(sphere):
             self.pos.z = BOX_SIZE if self.pos.z > 0 else -BOX_SIZE
             self.velocity.z *= -1
 
-        for o in objects:
+        for i in range(PARTICLES+1 - start):
+            o = objects[PARTICLES - i]
+
+            if self == o:
+                continue
+
             tot_radius = self.radius + o.radius
             intersect_amount = tot_radius - mag(self.pos - o.pos)
-            if self != o and intersect_amount > 1e-3:
+            if intersect_amount > 1e-3:
                 # move the objects so they are no longer intersecting
                 # each object is adjusted by an amount proportional to its
                 #  radius, a good approximation as the timestep gets small
@@ -73,15 +86,15 @@ class Object(sphere):
                 #  the simulation, if it is small, the simulation will be
                 #  accurate, if it is large, the simulation could become
                 #  inaccurate and the timestep should be decreased
-
-                self.pos -= norm(o.pos - self.pos) * (self.radius/tot_radius)*intersect_amount
-                o.pos -= norm(self.pos - o.pos) * (o.radius/tot_radius)*intersect_amount
-
                 # from testing, the value (tot_radius - mag(self.pos - o.pos))
                 #  is on the order of 1e-14, and so the bounds required for a
                 #  collision should be adequate to consider each collision only
                 #  once
 
+                self.pos -= norm(o.pos - self.pos) * (self.radius/tot_radius)*intersect_amount
+                o.pos -= norm(self.pos - o.pos) * (o.radius/tot_radius)*intersect_amount
+
+                # WORKING 1D COLLISION
                 ref_frame = copy(o.velocity)
 
                 self.velocity -= ref_frame
@@ -93,6 +106,8 @@ class Object(sphere):
                 self.velocity += ref_frame
                 o.velocity += ref_frame
 
+                self.pos += self.velocity * dt
+
 class Particle(Object):
     RADIUS = 15
     MAX_SPEED = 5
@@ -103,15 +118,15 @@ class Particle(Object):
     @staticmethod
     def generate_velocity():
         return uniform(0, Particle.MAX_SPEED) * norm(vector(uniform(0, 1),
-                                                            uniform(0, 1),
-                                                            uniform(0, 1)))
+            0 if d1 else uniform(0, 1),
+            0 if d2 or d1 else uniform(0, 1)))
 
     @staticmethod
     def generate_position(objects):
         while True:
             candidate = vector(uniform(-BOX_SIZE, BOX_SIZE),
-                               uniform(-BOX_SIZE, BOX_SIZE),
-                               uniform(-BOX_SIZE, BOX_SIZE))
+                               0 if d1 else uniform(-BOX_SIZE, BOX_SIZE),
+                               0 if d1 or d2 else uniform(-BOX_SIZE, BOX_SIZE))
 
             for o in objects:
                 if mag(candidate - o.pos) <= o.radius + Particle.RADIUS:
@@ -120,14 +135,14 @@ class Particle(Object):
                 return candidate
 
 class Mass(Object):
-    RADIUS = 1e2
+    RADIUS = 100
 
     def __init__(self):
         Object.__init__(self, color=color.blue, radius=Mass.RADIUS)
         self.trace = curve(color=color.blue)
 
-    def tick(self, objects, dt):
-        Object.tick(self, objects, dt)
+    def tick(self, objects, start, dt):
+        Object.tick(self, objects, start, dt)
         self.trace.append(self.pos)
 
 objects = list()
@@ -135,9 +150,31 @@ objects.append(Mass())
 for _ in range(PARTICLES):
     objects.append(Particle(objects))
 
-while True:
-    for o in objects:
-        o.tick(objects, dt)
+times = list()
+
+while MAX_TIME < 0 or t < MAX_TIME:
+    start = time.time()
+
+    for i in range(PARTICLES + 1):
+        objects[i].tick(objects, i+1, dt)
+
+    times.append(time.time() - start)
+
+    t += dt
 
     if scene.visible:
-        time.sleep(0.0001)         # sleep time in s
+        time.sleep(0.001)         # sleep time in s
+
+    if scene.mouse.events and scene.mouse.getevent().click:
+        break
+
+avg_time = 0
+for t in times:
+    avg_time += t
+
+if len(times) > 0:
+    avg_time /= len(times)
+
+print "Average Tick:", avg_time, "(", len(times), ")"
+
+scene.visible = False
