@@ -11,7 +11,7 @@ dt = .25            # the timestep between ticks in seconds - smaller for more a
 SLEEP = .001        # amount of time to spend idle each tick (if running in demo mode), in seconds
 NUM_SIMS = 3        # the number of times to run the simulation (starting over each time)
 SIM_TIME = 100      # how long each simulation should run, in seconds of simulation-time
-DEMO = False        # toggle running the demo (show the window, run only one simulation)
+DEMO = True         # toggle running the demo (show the window, run only one simulation)
 
 d2 = False          # set to true to simulate in 2 dimensions (all z-fields are 0)
 d1 = False          # set to true to simulate in 1 dimension (all y- and z-fields are 0)
@@ -103,18 +103,15 @@ class Object(sphere):
                 o.pos += norm(r) * o_adjust*intersect_amount
 
                 # switch into the frame of reference of the other object
-                # TODO: find a better way to copy vectors
-                frame = vector(o.velocity.x, o.velocity.y, o.velocity.z)
+                frame = vector(o.velocity)
 
                 self.velocity -= frame
                 o.velocity -= frame
 
-                # TODO: find a better way to copy vectors
-                v1 = vector(self.velocity.x, self.velocity.y, self.velocity.z)
-                p = proj(v1, r)
+                p = proj(self.velocity, r)
 
                 # calculate the new velocities for the two objects
-                self.velocity = (v1 - p) + (p*(self.mass - o.mass)/(self.mass + o.mass))
+                self.velocity = (self.velocity - p) + (p*(self.mass - o.mass)/(self.mass + o.mass))
                 o.velocity = p*((2*self.mass)/(self.mass + o.mass))
                 
                 # switch back into the original frame of reference
@@ -238,5 +235,7 @@ else:
 
     for d in distances:
         f.write(`d` + "\n")
+
+    f.close()
 
     print "Output written to " + filename
