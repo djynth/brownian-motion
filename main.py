@@ -5,19 +5,17 @@ from visual.graph import *
 from random import uniform
 import time
 
-BOX_SIZE = 1e3      # m
-PARTICLES = 50
-dt = 1              # s
-t = 0               # s
-MAX_TIME = 1e5      # s, set to negative to run forever
-SLEEP = 100           # amount of time to sleep each loop (if the scene is visible) in ms
+BOX_SIZE = 5e2      # m
+PARTICLES = 100
+dt = .25            # s
+SLEEP = 1           # amount of time to sleep each loop (if the scene is visible) in ms
 
 d2 = False          # set to true to simulate in 2 dimensions (all z-fields are 0)
 d1 = False          # set to true to simulate in 1 dimension (all y- and z-fields are 0)
 
 scene.visible = False
 scene.fullscreen = True
-scene.visible = True        # set to toggle the display
+scene.visible = False        # set to toggle the display
 
 box_bottom = box(pos=(0, -BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
 box_top    = box(pos=(0,  BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
@@ -55,18 +53,17 @@ class Object(sphere):
     def momentum(self, value):
         self.velocity = value/self.mass
 
-    def intersects(self, other):
-        return mag(self.pos - other.pos) <= self.radius + other.radius
-
-    def tick(self, objects, start, dt):
-        self.pos += self.velocity * dt
-
+    def collide_edge(self):
         if abs(self.pos.x) > BOX_SIZE:
             self.pos.x = -BOX_SIZE if self.pos.x > 0 else BOX_SIZE
         if abs(self.pos.y) > BOX_SIZE:
             self.pos.y = -BOX_SIZE if self.pos.y > 0 else BOX_SIZE
         if abs(self.pos.z) > BOX_SIZE:
             self.pos.z = -BOX_SIZE if self.pos.z > 0 else BOX_SIZE
+
+    def tick(self, objects, start, dt):
+        self.pos += self.velocity * dt
+        self.collide_edge()
 
         for i in range(PARTICLES+1 - start):
             o = objects[PARTICLES - i]
@@ -91,15 +88,25 @@ class Object(sphere):
 
                 intersect_amount = tot_radius - mag(self.pos - o.pos)
 
-                self.pos -= norm(o.pos - self.pos) * (self.radius/tot_radius)*intersect_amount
-                o.pos -= norm(self.pos - o.pos) * (o.radius/tot_radius)*intersect_amount
+                self_adjust = .5
+                o_adjust = .5
 
-                frame = copy(o.velocity)
+                if self.radius > o.radius:
+                    self_adjust = 0
+                    o_adjust = 1
+                elif self.radius < o.radius:
+                    self_adjust = 1
+                    o_adjust = 0
+
+                self.pos -= norm(o.pos - self.pos) * self_adjust*intersect_amount
+                o.pos -= norm(self.pos - o.pos) * o_adjust*intersect_amount
+
+                frame = vector(o.velocity.x, o.velocity.y, o.velocity.z)
 
                 self.velocity -= frame
                 o.velocity -= frame
 
-                v1 = copy(self.velocity)
+                v1 = vector(self.velocity.x, self.velocity.y, self.velocity.z)
                 p = proj(v1, o.pos - self.pos)
 
                 self.velocity = (v1 - p) + (p*(self.mass - o.mass)/(self.mass + o.mass))
@@ -111,8 +118,8 @@ class Object(sphere):
                 # self.pos += self.velocity * dt
 
 class Particle(Object):
-    RADIUS = 15
-    MAX_SPEED = 5
+    RADIUS = 10
+    MAX_SPEED = 100
 
     def __init__(self, objects):
         Object.__init__(self, color=color.yellow, radius=Particle.RADIUS, velocity=Particle.generate_velocity(), pos=Particle.generate_position(objects))
@@ -142,43 +149,63 @@ class Mass(Object):
     def __init__(self):
         Object.__init__(self, color=color.blue, radius=Mass.RADIUS)
         self.trace = curve(color=color.blue)
+        self.velocity = vector(0, 0, 0)
+
+    def collide_edge(self):
+        if abs(self.pos.x) > BOX_SIZE:
+            self.pos.x = BOX_SIZE if self.pos.x > 0 else -BOX_SIZE
+            self.velocity.x *= -1
+        if abs(self.pos.y) > BOX_SIZE:
+            self.pos.y = BOX_SIZE if self.pos.y > 0 else -BOX_SIZE
+            self.velocity.y *= -1
+        if abs(self.pos.z) > BOX_SIZE:
+            self.pos.z = BOX_SIZE if self.pos.z > 0 else -BOX_SIZE
+            self.velocity.z *= -1
 
     def tick(self, objects, start, dt):
         Object.tick(self, objects, start, dt)
         self.trace.append(self.pos)
 
-objects = list()
-mass = Mass()
-objects.append(mass)
-for _ in range(PARTICLES):
-    objects.append(Particle(objects))
+def run_sim(total_time=-1):
+    objects = list()
+    mass = Mass()
+    objects.append(mass)
+    for _ in range(PARTICLES):
+        objects.append(Particle(objects))
 
-times = list()
+    t = 0
 
-while MAX_TIME < 0 or t < MAX_TIME:
-    start = time.time()
+    while total_time < 0 or t < total_time:
+        for i in range(PARTICLES + 1):
+            objects[i].tick(objects, i+1, dt)
 
-    for i in range(PARTICLES + 1):
-        objects[i].tick(objects, i+1, dt)
+        t += dt
 
-    times.append(time.time() - start)
+        if scene.visible:
+            time.sleep(.001*SLEEP)
 
-    t += dt
+        if scene.mouse.events and scene.mouse.getevent().click:
+            break
 
-    if scene.visible:
-        time.sleep(.001*SLEEP)
+    return mag(mass.pos)
 
-    if scene.mouse.events and scene.mouse.getevent().click:
-        break
+distances = list()
+for i in range(100):
+    print i
+    distances.append(run_sim(100))
 
-avg_time = 0
-for t in times:
-    avg_time += t
+print distances
+avg = 0
 
-if len(times) > 0:
-    avg_time /= len(times)
+for d in distances:
+    avg += d
+avg /= len(distances)
 
-print "Average Tick:", avg_time, "(" + `len(times)` + ")"
-print "Final Displacement:", mag(mass.pos)
+sd = 0
+for d in distances:
+    sd += (d-avg)**2
+sd /= len(distances)
+sd = sqrt(sd)
 
-scene.visible = False
+print avg
+print sd
