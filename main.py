@@ -9,6 +9,8 @@ BOX_SIZE = 5e2      # m
 PARTICLES = 100
 dt = .25            # s
 SLEEP = 1           # amount of time to sleep each loop (if the scene is visible) in ms
+NUM_SIMS = 1        # the number of times to run the simulation (starting over each time)
+SIM_TIME = 100      # how long each simulation should run, in seconds of simulation-time
 
 d2 = False          # set to true to simulate in 2 dimensions (all z-fields are 0)
 d1 = False          # set to true to simulate in 1 dimension (all y- and z-fields are 0)
@@ -190,9 +192,9 @@ def run_sim(total_time=-1):
     return mag(mass.pos)
 
 distances = list()
-for i in range(100):
+for i in range(NUM_SIMS):
     print i
-    distances.append(run_sim(100))
+    distances.append(run_sim(SIM_TIME))
 
 print distances
 avg = 0
@@ -209,3 +211,18 @@ sd = sqrt(sd)
 
 print avg
 print sd
+
+datetime = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
+filename = "data/data-" + datetime + ".txt"
+f = open(filename, 'w')
+f.write("Brownian Motion Simulation\n")
+f.write(datetime + "\n")
+f.write("Ran " + `NUM_SIMS` + " times, for " + `SIM_TIME` + " seconds of simulation-time\n")
+f.write("Average displacement: " + `avg` + "\n")
+f.write("Standard deviation: " + `sd` + "\n\n")
+f.write("Displacement data:\n")
+
+for d in distances:
+    f.write(`d` + "\n")
+
+print "Output written to " + filename
