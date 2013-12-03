@@ -6,17 +6,18 @@ from random import uniform
 import time
 
 BOX_SIZE = 1e3      # m
-PARTICLES = 100
-dt = 5              # s
-t = 0
-MAX_TIME = 1e5  
+PARTICLES = 50
+dt = 1              # s
+t = 0               # s
+MAX_TIME = 1e5      # s, set to negative to run forever
+SLEEP = 100           # amount of time to sleep each loop (if the scene is visible) in ms
 
-d2 = True
-d1 = False
+d2 = False          # set to true to simulate in 2 dimensions (all z-fields are 0)
+d1 = False          # set to true to simulate in 1 dimension (all y- and z-fields are 0)
 
 scene.visible = False
 scene.fullscreen = True
-scene.visible = True
+scene.visible = True        # set to toggle the display
 
 box_bottom = box(pos=(0, -BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
 box_top    = box(pos=(0,  BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
@@ -45,7 +46,7 @@ class Object(sphere):
     
     @property
     def mass(self):
-        return 0.001 * self.volume
+        return self.volume
 
     @property
     def momentum(self):
@@ -74,7 +75,7 @@ class Object(sphere):
                 continue
 
             tot_radius = self.radius + o.radius
-            intersect_amount = tot_radius - mag(self.pos - o.pos)
+            intersect_amount = tot_radius**2 - mag2(self.pos - o.pos)
             if intersect_amount > 1e-3:
                 # move the objects so they are no longer intersecting
                 # each object is adjusted by an amount proportional to its
@@ -88,22 +89,26 @@ class Object(sphere):
                 #  collision should be adequate to consider each collision only
                 #  once
 
+                intersect_amount = tot_radius - mag(self.pos - o.pos)
+
                 self.pos -= norm(o.pos - self.pos) * (self.radius/tot_radius)*intersect_amount
                 o.pos -= norm(self.pos - o.pos) * (o.radius/tot_radius)*intersect_amount
 
-                # WORKING 1D COLLISION
-                ref_frame = copy(o.velocity)
+                frame = copy(o.velocity)
 
-                self.velocity -= ref_frame
-                o.velocity -= ref_frame
+                self.velocity -= frame
+                o.velocity -= frame
 
-                o.velocity = (self.momentum*((2*o.mass)/(self.mass + o.mass)))/o.mass
-                self.velocity = (self.momentum*((self.mass - o.mass)/(self.mass + o.mass)))/self.mass
+                v1 = copy(self.velocity)
+                p = proj(v1, o.pos - self.pos)
+
+                self.velocity = (v1 - p) + (p*(self.mass - o.mass)/(self.mass + o.mass))
+                o.velocity = p*((2*self.mass)/(self.mass + o.mass))
                 
-                self.velocity += ref_frame
-                o.velocity += ref_frame
+                self.velocity += frame
+                o.velocity += frame
 
-                self.pos += self.velocity * dt
+                # self.pos += self.velocity * dt
 
 class Particle(Object):
     RADIUS = 15
@@ -114,9 +119,9 @@ class Particle(Object):
 
     @staticmethod
     def generate_velocity():
-        return uniform(0, Particle.MAX_SPEED) * norm(vector(uniform(0, 1),
-            0 if d1 else uniform(0, 1),
-            0 if d2 or d1 else uniform(0, 1)))
+        return uniform(0, Particle.MAX_SPEED) * norm(vector(uniform(-1, 1),
+            0 if d1 else uniform(-1, 1),
+            0 if d2 or d1 else uniform(-1, 1)))
 
     @staticmethod
     def generate_position(objects):
@@ -143,7 +148,8 @@ class Mass(Object):
         self.trace.append(self.pos)
 
 objects = list()
-objects.append(Mass())
+mass = Mass()
+objects.append(mass)
 for _ in range(PARTICLES):
     objects.append(Particle(objects))
 
@@ -160,7 +166,7 @@ while MAX_TIME < 0 or t < MAX_TIME:
     t += dt
 
     if scene.visible:
-        time.sleep(0.001)         # sleep time in s
+        time.sleep(.001*SLEEP)
 
     if scene.mouse.events and scene.mouse.getevent().click:
         break
@@ -172,6 +178,7 @@ for t in times:
 if len(times) > 0:
     avg_time /= len(times)
 
-print "Average Tick:", avg_time, "(", len(times), ")"
+print "Average Tick:", avg_time, "(" + `len(times)` + ")"
+print "Final Displacement:", mag(mass.pos)
 
 scene.visible = False
