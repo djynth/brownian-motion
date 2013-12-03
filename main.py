@@ -5,20 +5,20 @@ from visual.graph import *
 from random import uniform
 import time
 
-BOX_SIZE = 5e2      # m
-PARTICLES = 100
-dt = .25            # s
-SLEEP = 1           # amount of time to sleep each loop (if the scene is visible) in ms
-NUM_SIMS = 1        # the number of times to run the simulation (starting over each time)
+BOX_SIZE = 5e2      # distance from the origin to the edges of the box, in meters
+PARTICLES = 100     # the number of particles in the simulation
+dt = .25            # the timestep between ticks in seconds - smaller for more accuracy, larger to run more quickly
+SLEEP = .001        # amount of time to spend idle each tick (if running in demo mode), in seconds
+NUM_SIMS = 3        # the number of times to run the simulation (starting over each time)
 SIM_TIME = 100      # how long each simulation should run, in seconds of simulation-time
-demo = True         # toggle running the demo (show the window, run only one simulation)
+DEMO = False        # toggle running the demo (show the window, run only one simulation)
 
 d2 = False          # set to true to simulate in 2 dimensions (all z-fields are 0)
 d1 = False          # set to true to simulate in 1 dimension (all y- and z-fields are 0)
 
 scene.visible = False
 scene.fullscreen = True
-scene.visible = demo
+scene.visible = DEMO
 
 box_bottom = box(pos=(0, -BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
 box_top    = box(pos=(0,  BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
@@ -47,7 +47,7 @@ class Object(sphere):
     
     @property
     def mass(self):
-        return self.volume
+        return self.volume          # density of 1 kg/m^3
 
     @property
     def momentum(self):
@@ -58,11 +58,11 @@ class Object(sphere):
 
     def collide_edge(self):
         if abs(self.pos.x) > BOX_SIZE:
-            self.pos.x = -BOX_SIZE if self.pos.x > 0 else BOX_SIZE
+            self.pos.x *= -1
         if abs(self.pos.y) > BOX_SIZE:
-            self.pos.y = -BOX_SIZE if self.pos.y > 0 else BOX_SIZE
+            self.pos.y *= -1
         if abs(self.pos.z) > BOX_SIZE:
-            self.pos.z = -BOX_SIZE if self.pos.z > 0 else BOX_SIZE
+            self.pos.z *= -1
 
     def tick(self, objects, start, dt):
         self.pos += self.velocity * dt
@@ -71,26 +71,24 @@ class Object(sphere):
         for i in range(PARTICLES+1 - start):
             o = objects[PARTICLES - i]
 
-            if self == o:
-                continue
-
+            # determine whether the two objects are colliding, using mag2 for
+            #  performance
             tot_radius = self.radius + o.radius
             intersect_amount = tot_radius**2 - mag2(self.pos - o.pos)
             if intersect_amount > 1e-3:
-                # move the objects so they are no longer intersecting
-                # each object is adjusted by an amount proportional to its
-                #  radius, a good approximation as the timestep gets small
-                # note: the intersted_amount is a way to judge the accuracy of
-                #  the simulation, if it is small, the simulation will be
-                #  accurate, if it is large, the simulation could become
-                #  inaccurate and the timestep should be decreased
-                # from testing, the value (tot_radius - mag(self.pos - o.pos))
-                #  is on the order of 1e-14, and so the bounds required for a
-                #  collision should be adequate to consider each collision only
-                #  once
-
+                # the amount of overlap between the two colliding objects
                 intersect_amount = tot_radius - mag(self.pos - o.pos)
+                # the vector from self to o
+                r = o.pos - self.pos
 
+                # adjust the objects so they are no longer intersecting
+                # if the radii of the objects are the same (i.e. two Particles)
+                #  collided, each is adjusted by the same amount
+                # otherwise, the larger object (i.e. the Mass) is held not
+                #  adjusted, and the smaller object (i.e. the Particle) is moved
+                #  to the edge of the larger object
+                # this is done to preserve the position of the Mass, which is
+                #  what we are attempting to measure
                 self_adjust = .5
                 o_adjust = .5
 
@@ -101,35 +99,42 @@ class Object(sphere):
                     self_adjust = 1
                     o_adjust = 0
 
-                self.pos -= norm(o.pos - self.pos) * self_adjust*intersect_amount
-                o.pos -= norm(self.pos - o.pos) * o_adjust*intersect_amount
+                self.pos -= norm(r) * self_adjust*intersect_amount
+                o.pos += norm(r) * o_adjust*intersect_amount
 
+                # switch into the frame of reference of the other object
+                # TODO: find a better way to copy vectors
                 frame = vector(o.velocity.x, o.velocity.y, o.velocity.z)
 
                 self.velocity -= frame
                 o.velocity -= frame
 
+                # TODO: find a better way to copy vectors
                 v1 = vector(self.velocity.x, self.velocity.y, self.velocity.z)
-                p = proj(v1, o.pos - self.pos)
+                p = proj(v1, r)
 
+                # calculate the new velocities for the two objects
                 self.velocity = (v1 - p) + (p*(self.mass - o.mass)/(self.mass + o.mass))
                 o.velocity = p*((2*self.mass)/(self.mass + o.mass))
                 
+                # switch back into the original frame of reference
                 self.velocity += frame
                 o.velocity += frame
 
-                # self.pos += self.velocity * dt
-
 class Particle(Object):
-    RADIUS = 10
-    MAX_SPEED = 100
+    RADIUS = 10         # radius of each Particle, in meters
+    MAX_SPEED = 100     # the maximum magnitude of the velocity of a Particle when it is created, in meters/second
+    MIN_SPEED = 15      # the minimum magnitude of the velocity of a Particle when it is created, in meters/second
 
     def __init__(self, objects):
-        Object.__init__(self, color=color.yellow, radius=Particle.RADIUS, velocity=Particle.generate_velocity(), pos=Particle.generate_position(objects))
+        Object.__init__(self, color=color.yellow, radius=Particle.RADIUS,
+            velocity=Particle.generate_velocity(),
+            pos=Particle.generate_position(objects))
 
     @staticmethod
     def generate_velocity():
-        return uniform(0, Particle.MAX_SPEED) * norm(vector(uniform(-1, 1),
+        return uniform(Particle.MIN_SPEED, Particle.MAX_SPEED) * norm(
+            vector(uniform(-1, 1),
             0 if d1 else uniform(-1, 1),
             0 if d2 or d1 else uniform(-1, 1)))
 
@@ -147,12 +152,12 @@ class Particle(Object):
                 return candidate
 
 class Mass(Object):
-    RADIUS = 100
+    RADIUS = 100        # radius of the Mass, in meters
 
     def __init__(self):
         Object.__init__(self, color=color.blue, radius=Mass.RADIUS)
         self.trace = curve(color=color.blue)
-        self.velocity = vector(0, 0, 0)
+        self.velocity = vector(0, 0, 0)     # FIXME: why is this necessary?
 
     def collide_edge(self):
         if abs(self.pos.x) > BOX_SIZE:
@@ -185,22 +190,20 @@ def run_sim(total_time=-1):
         t += dt
 
         if scene.visible:
-            time.sleep(.001*SLEEP)
-
-        if scene.mouse.events and scene.mouse.getevent().click:
-            break
+            time.sleep(SLEEP)
+            if scene.mouse.events and scene.mouse.getevent().click:
+                break
 
     return mag(mass.pos)
 
-if demo:
-    run_sim(-1)
+if DEMO:
+    run_sim()
 else:
     distances = list()
     for i in range(NUM_SIMS):
-        print i
+        print "running simulation " + `i+1` + "/" + `NUM_SIMS`
         distances.append(run_sim(SIM_TIME))
 
-    print distances
     avg = 0
 
     for d in distances:
@@ -213,15 +216,22 @@ else:
     sd /= len(distances)
     sd = sqrt(sd)
 
-    print avg
-    print sd
-
+    # TODO: is there a way to avoid all the \n newlines?
     datetime = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
     filename = "data/data-" + datetime + ".txt"
     f = open(filename, 'w')
     f.write("Brownian Motion Simulation\n")
-    f.write(datetime + "\n")
-    f.write("Ran " + `NUM_SIMS` + " times, for " + `SIM_TIME` + " seconds of simulation-time\n")
+    f.write(datetime + "\n\n")
+    f.write("Simulation Parameters:\n")
+    f.write("   times run: " + `NUM_SIMS` + "\n")
+    f.write("   number of particles: " + `PARTICLES` + "\n")
+    f.write("   simulation time (s): " + `SIM_TIME` + "\n")
+    f.write("   dt (s): " + `dt` + "\n")
+    f.write("   box size (m): " + `BOX_SIZE` + "\n")
+    f.write("   mass radius: " + `Mass.RADIUS` + "\n")
+    f.write("   particle radius: " + `Particle.RADIUS` + "\n")
+    f.write("   particle speed interval: [" + `Particle.MIN_SPEED` + "," + `Particle.MAX_SPEED` + "]\n")
+    f.write("\n")
     f.write("Average displacement: " + `avg` + "\n")
     f.write("Standard deviation: " + `sd` + "\n\n")
     f.write("Displacement data:\n")
