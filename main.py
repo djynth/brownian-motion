@@ -9,7 +9,7 @@ BOX_SIZE = 1e3      # m
 PARTICLES = 100
 dt = 5              # s
 t = 0
-MAX_TIME = 1e5
+MAX_TIME = 1e5  
 
 d2 = True
 d1 = False
@@ -61,14 +61,11 @@ class Object(sphere):
         self.pos += self.velocity * dt
 
         if abs(self.pos.x) > BOX_SIZE:
-            self.pos.x = BOX_SIZE if self.pos.x > 0 else -BOX_SIZE
-            self.velocity.x *= -1
+            self.pos.x = -BOX_SIZE if self.pos.x > 0 else BOX_SIZE
         if abs(self.pos.y) > BOX_SIZE:
-            self.pos.y = BOX_SIZE if self.pos.y > 0 else -BOX_SIZE
-            self.velocity.y *= -1
+            self.pos.y = -BOX_SIZE if self.pos.y > 0 else BOX_SIZE
         if abs(self.pos.z) > BOX_SIZE:
-            self.pos.z = BOX_SIZE if self.pos.z > 0 else -BOX_SIZE
-            self.velocity.z *= -1
+            self.pos.z = -BOX_SIZE if self.pos.z > 0 else BOX_SIZE
 
         for i in range(PARTICLES+1 - start):
             o = objects[PARTICLES - i]
