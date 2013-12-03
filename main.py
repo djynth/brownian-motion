@@ -213,7 +213,6 @@ else:
     sd /= len(distances)
     sd = sqrt(sd)
 
-    # TODO: is there a way to avoid all the \n newlines?
     datetime = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
     filename = "data/data-" + datetime + ".txt"
     f = open(filename, 'w')

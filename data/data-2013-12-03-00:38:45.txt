@@ -1,7 +1,0 @@
-Brownian Motion Simulation
-2013-12-03-00:38:45
-Ran 1 times, for 100 seconds of simulation-time
-Average displacements: 3.9485718981058717
-Standard deviation: 0.0
-Displacement data:
-3.9485718981058717
