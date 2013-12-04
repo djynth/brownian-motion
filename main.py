@@ -157,14 +157,14 @@ class Mass(Object):
         self.velocity = vector(0, 0, 0)     # FIXME: why is this necessary?
 
     def collide_edge(self):
-        if abs(self.pos.x) > BOX_SIZE:
-            self.pos.x = BOX_SIZE if self.pos.x > 0 else -BOX_SIZE
+        if self.pos.x + self.radius > BOX_SIZE or self.pos.pos.x - self.radius < -BOX_SIZE:
+            self.pos.x = BOX_SIZE - self.radius if self.pos.x > 0 else -BOX_SIZE + self.radius
             self.velocity.x *= -1
-        if abs(self.pos.y) > BOX_SIZE:
-            self.pos.y = BOX_SIZE if self.pos.y > 0 else -BOX_SIZE
+        if self.pos.y + self.radius > BOX_SIZE or self.pos.pos.y - self.radius < -BOX_SIZE:
+            self.pos.y = BOX_SIZE - self.radius if self.pos.y > 0 else -BOX_SIZE + self.radius
             self.velocity.y *= -1
-        if abs(self.pos.z) > BOX_SIZE:
-            self.pos.z = BOX_SIZE if self.pos.z > 0 else -BOX_SIZE
+        if self.pos.z + self.radius > BOX_SIZE or self.pos.pos.z - self.radius < -BOX_SIZE:
+            self.pos.z = BOX_SIZE - self.radius if self.pos.z > 0 else -BOX_SIZE + self.radius
             self.velocity.z *= -1
 
     def tick(self, objects, start, dt):
