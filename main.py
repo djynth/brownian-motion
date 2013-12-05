@@ -7,10 +7,10 @@ import time
 
 BOX_SIZE = 5e2      # distance from the origin to the edges of the box, in meters
 PARTICLES = 100     # the number of particles in the simulation
-dt = .25            # the timestep between ticks in seconds - smaller for more accuracy, larger to run more quickly
+dt = 5              # the timestep between ticks in seconds - smaller for more accuracy, larger to run more quickly
 SLEEP = .001        # amount of time to spend idle each tick (if running in demo mode), in seconds
 NUM_SIMS = 250      # the number of times to run the simulation (starting over each time)
-SIM_TIME = 100      # how long each simulation should run, in seconds of simulation-time
+SIM_TIME = 1000     # how long each simulation should run, in seconds of simulation-time
 DEMO = False        # toggle running the demo (show the window, run only one simulation)
 
 d2 = False          # set to true to simulate in 2 dimensions (all z-fields are 0)
@@ -20,11 +20,12 @@ scene.visible = False
 scene.fullscreen = True
 scene.visible = DEMO
 
-box_bottom = box(pos=(0, -BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
-box_top    = box(pos=(0,  BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
-box_left   = box(pos=(-BOX_SIZE, 0, 0), length=0.01,       width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
-box_right  = box(pos=( BOX_SIZE, 0, 0), length=0.01,       width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
-box_back   = box(pos=(0, 0, -BOX_SIZE), length=2*BOX_SIZE, width=0.01,       height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
+if DEMO:
+    box_bottom = box(pos=(0, -BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
+    box_top    = box(pos=(0,  BOX_SIZE, 0), length=2*BOX_SIZE, width=2*BOX_SIZE, height=0.01,       color=color.cyan, opacity=0.2)
+    box_left   = box(pos=(-BOX_SIZE, 0, 0), length=0.01,       width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
+    box_right  = box(pos=( BOX_SIZE, 0, 0), length=0.01,       width=2*BOX_SIZE, height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
+    box_back   = box(pos=(0, 0, -BOX_SIZE), length=2*BOX_SIZE, width=0.01,       height=2*BOX_SIZE, color=color.cyan, opacity=0.2)
 
 class Object(sphere):
     def __init__(self, pos=vector(0,0,0), radius=0, velocity=vector(0,0,0), color=color.white):
@@ -157,13 +158,13 @@ class Mass(Object):
         self.velocity = vector(0, 0, 0)     # FIXME: why is this necessary?
 
     def collide_edge(self):
-        if self.pos.x + self.radius > BOX_SIZE or self.pos.pos.x - self.radius < -BOX_SIZE:
+        if self.pos.x + self.radius > BOX_SIZE or self.pos.x - self.radius < -BOX_SIZE:
             self.pos.x = BOX_SIZE - self.radius if self.pos.x > 0 else -BOX_SIZE + self.radius
             self.velocity.x *= -1
-        if self.pos.y + self.radius > BOX_SIZE or self.pos.pos.y - self.radius < -BOX_SIZE:
+        if self.pos.y + self.radius > BOX_SIZE or self.pos.y - self.radius < -BOX_SIZE:
             self.pos.y = BOX_SIZE - self.radius if self.pos.y > 0 else -BOX_SIZE + self.radius
             self.velocity.y *= -1
-        if self.pos.z + self.radius > BOX_SIZE or self.pos.pos.z - self.radius < -BOX_SIZE:
+        if self.pos.z + self.radius > BOX_SIZE or self.pos.z - self.radius < -BOX_SIZE:
             self.pos.z = BOX_SIZE - self.radius if self.pos.z > 0 else -BOX_SIZE + self.radius
             self.velocity.z *= -1
 
