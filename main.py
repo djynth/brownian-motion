@@ -7,10 +7,10 @@ import time
 
 BOX_SIZE = 5e2      # distance from the origin to the edges of the box, in meters
 PARTICLES = 100     # the number of particles in the simulation
-dt = 5              # the timestep between ticks in seconds - smaller for more accuracy, larger to run more quickly
+dt = .25            # the timestep between ticks in seconds - smaller for more accuracy, larger to run more quickly
 SLEEP = .001        # amount of time to spend idle each tick (if running in demo mode), in seconds
 NUM_SIMS = 250      # the number of times to run the simulation (starting over each time)
-SIM_TIME = 1000     # how long each simulation should run, in seconds of simulation-time
+SIM_TIME = 100      # how long each simulation should run, in seconds of simulation-time
 DEMO = False        # toggle running the demo (show the window, run only one simulation)
 
 d2 = False          # set to true to simulate in 2 dimensions (all z-fields are 0)
@@ -189,8 +189,6 @@ def run_sim(total_time=-1):
 
         if scene.visible:
             time.sleep(SLEEP)
-            if scene.mouse.events and scene.mouse.getevent().click:
-                break
 
     return mag(mass.pos)
 
