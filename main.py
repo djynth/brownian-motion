@@ -11,7 +11,9 @@ dt = .25            # the timestep between ticks in seconds - smaller for more a
 SLEEP = .001        # amount of time to spend idle each tick (if running in demo mode), in seconds
 NUM_SIMS = 250      # the number of times to run the simulation (starting over each time)
 SIM_TIME = 100      # how long each simulation should run, in seconds of simulation-time
-DEMO = False        # toggle running the demo (show the window, run only one simulation)
+DEMO = True         # toggle running the demo (show the window, run only one simulation)
+P2P = True          # toggle whether particles collide with other particles (as opposed to colliding only with the mass)
+                    # if this is true, particles are allowed to spawn while intersecting with other particles
 
 d2 = False          # set to true to simulate in 2 dimensions (all z-fields are 0)
 d1 = False          # set to true to simulate in 1 dimension (all y- and z-fields are 0)
@@ -48,7 +50,7 @@ class Object(sphere):
     
     @property
     def mass(self):
-        return self.volume          # density of 1 kg/m^3
+        return self.volume          # uniform density of 1 kg/m^3
 
     @property
     def momentum(self):
@@ -69,7 +71,12 @@ class Object(sphere):
         self.pos += self.velocity * dt
         self.collide_edge()
 
-        for i in range(PARTICLES+1 - start):
+        if P2P:
+            other_particles = range(PARTICLES+1 - start)
+        else:
+            other_particles = range(PARTICLES, PARTICLES+1)
+
+        for i in other_particles:
             o = objects[PARTICLES - i]
 
             # determine whether the two objects are colliding, using mag2 for
@@ -138,12 +145,18 @@ class Particle(Object):
 
     @staticmethod
     def generate_position(objects):
+        if P2P:
+            other_particles = range(len(objects))
+        else:
+            other_particles = range(len(objects) - 1, len(objects))
+
         while True:
             candidate = vector(uniform(-BOX_SIZE, BOX_SIZE),
                                0 if d1 else uniform(-BOX_SIZE, BOX_SIZE),
                                0 if d1 or d2 else uniform(-BOX_SIZE, BOX_SIZE))
 
-            for o in objects:
+            for i in other_particles:
+                o = objects[len(objects) - i - 1]
                 if mag(candidate - o.pos) <= o.radius + Particle.RADIUS:
                     break
             else:
@@ -154,7 +167,7 @@ class Mass(Object):
 
     def __init__(self):
         Object.__init__(self, color=color.blue, radius=Mass.RADIUS)
-        self.trace = curve(color=color.blue)
+        self.trace = curve(color=color.red)
         self.velocity = vector(0, 0, 0)     # FIXME: why is this necessary?
 
     def collide_edge(self):
@@ -182,7 +195,7 @@ def run_sim(total_time=-1):
     t = 0
 
     while total_time < 0 or t < total_time:
-        for i in range(PARTICLES + 1):
+        for i in range(len(objects)):
             objects[i].tick(objects, i+1, dt)
 
         t += dt
